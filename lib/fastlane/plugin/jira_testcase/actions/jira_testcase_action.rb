@@ -25,18 +25,23 @@ module Fastlane
         ticket_id    = params[:ticket_id]
         comment_text = params[:comment_text]
 
+        JiraTestcase::IosValidator.validate_ios_app(params[:app_path])
+        upload_spinner = TTY::Spinner.new("[:spinner] Uploading the app to Jira Test...", format: :dots)
+        upload_spinner.auto_spin
         options = {
-                    site: site,
-                    context_path: context_path,
-                    auth_type: auth_type,
-                    username: username,
-                    password: password
-                  }
-
+            site: site,
+            context_path: context_path,
+            auth_type: auth_type,
+            username: username,
+            password: password
+        }
         client = JIRA::Client.new(options)
         issue = client.Issue.find(ticket_id)
         comment = issue.comments.build
         comment.save({ 'body' => comment_text })
+
+        upload_spinner.success("Done")
+        
       end
 
       def self.description
