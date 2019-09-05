@@ -7,11 +7,11 @@ require 'fastlane/plugin/jira_testcase/version'
 Gem::Specification.new do |spec|
   spec.name          = 'fastlane-plugin-jira_testcase'
   spec.version       = Fastlane::JiraTestcase::VERSION
-  spec.author        = 'Dũng Nguyễn'
+  spec.author        = 'Dũng Nguyễn'
   spec.email         = 'dung.ntm1@teko.vn'
 
   spec.summary       = 'Run unit testing and upload to Jira Test'
-  # spec.homepage      = "https://github.com/<GITHUB_USERNAME>/fastlane-plugin-jira_testcase"
+  spec.homepage      = "https://github.com/dungntm-teko/fastlane-plugin-jira_testcase"
   spec.license       = "MIT"
 
   spec.files         = Dir["lib/**/*"] + %w(README.md LICENSE)
