@@ -1,5 +1,4 @@
 require 'fastlane/action'
-require_relative '../helper/jira_testcase_helper'
 
 module Fastlane
   module Actions
@@ -19,13 +18,13 @@ module Fastlane
 
         site         = params[:url]
         auth_type    = :basic
-        context_path = params[:context_path]
         username     = params[:username]
         password     = params[:password]
         ticket_id    = params[:ticket_id]
         comment_text = params[:comment_text]
+        app_path     = params[:app_path]
 
-        JiraTestcase::IosValidator.validate_ios_app(params[:app_path])
+        JiraTestcase::IosValidator.validate_ios_app(app_path)
         upload_spinner = TTY::Spinner.new("[:spinner] Uploading the app to Jira Test...", format: :dots)
         upload_spinner.auto_spin
         options = {
@@ -36,12 +35,38 @@ module Fastlane
             password: password
         }
         client = JIRA::Client.new(options)
-        issue = client.Issue.find(ticket_id)
-        comment = issue.comments.build
-        comment.save({ 'body' => comment_text })
+
 
         upload_spinner.success("Done")
-        
+
+      end
+
+      def self.createTestCycle(client, name, projectKey, issueKey, folder, items = '')
+        body =
+            <<~END
+              {
+                "name": #{name},
+                "projectKey": #{projectKey},
+                "issueKey": #{issueKey},
+                "folder": #{folder},
+                "items": #{items}
+              }
+            END
+        client.post("/rest/atm/1.0/testrun", body)
+      end
+
+      def self.createTest(name = '', projectKey, issuesKey, description = '')
+        body =
+            <<~END
+              {
+                "name": #{name},
+                "testScript": {"type": "PLAIN_TEXT","text": "$testDescription"},
+                "projectKey": #{projectKey},
+                "issueLinks": [#{issuesKey}],
+                "status": "Approved"
+              }
+            END
+        client.post("/rest/atm/1.0/testcase", body)
       end
 
       def self.description
