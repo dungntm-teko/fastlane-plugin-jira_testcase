@@ -1,4 +1,5 @@
 require 'fastlane/action'
+require 'json'
 
 module Fastlane
   module Actions
@@ -30,24 +31,11 @@ module Fastlane
             clean: true,
             xcargs: "CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO",
           )
-          spinner.update(title: "Done testing, build a testing app now")
-
-          Actions::Scan::run(
-            workspace: params[:workspace],
-            scheme: params[:scheme],
-            clean: true,
-            skip_detect_devices: true,
-            build_for_testing: true,
-            sdk: 'iphoneos',
-            configuration: "Debug",
-            should_zip_build_products: true
-          )
-          spinner.update(title: "Done building")
-
-          JiraTestcase::IosValidator.validate_ios_app(params[:app_path])
-          spinner.update(title: "Upload the testing app to Jira Test...", format: :dots)
+          spinner.update(title: "Test successfully, upload test cases to Jira Test...", format: :dots)
           # Consider pass test items
-          createTestCycle(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_folder])
+          test_cases_in_issue = JSON[getTestsInIssue(client, params[:project_key], params[:issue_key])]
+          items = "[{\"key\": #{test_cases_in_issue["key"]}, \"result\": #{test_cases_in_issue["result"]}}]"
+          createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], items)
 
           spinner.success("Done")
         rescue => exception

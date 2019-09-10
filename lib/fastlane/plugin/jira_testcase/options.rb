@@ -30,6 +30,12 @@ module Fastlane
                       verify_block: proc do |value|
                         UI.user_error!("No Project specified") if value.to_s.length == 0
                       end),
+          FastlaneCore::ConfigItem.new(key: :test_cycle_name,
+                      env_name: "FL_JIRA_TEST_CYCLE_NAME",
+                      description: "Test cycle name",
+                      verify_block: proc do |value|
+                        UI.user_error!("No test cycle name specified") if value.to_s.length == 0
+                      end),
           FastlaneCore::ConfigItem.new(key: :test_name,
                       env_name: "FL_JIRA_TEST_NAME",
                       description: "Test name",
