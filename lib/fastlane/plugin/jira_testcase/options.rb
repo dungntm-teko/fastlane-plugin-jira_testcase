@@ -63,15 +63,9 @@ module Fastlane
                       verify_block: proc do |value|
                         UI.user_error!("No scheme specified") if value.to_s.length == 0
                       end),
-          FastlaneCore::ConfigItem.new(key: :sim_devices,
-                      env_name: "FL_JIRA_TEST_SIM_DEVICES",
-                      description: "Devices to run the tests on",
-                      verify_block: proc do |value|
-                        UI.user_error!("No devices specified") if value.to_s.length == 0
-                      end),
           FastlaneCore::ConfigItem.new(key: :devices,
                       env_name: "FL_JIRA_TEST_DEVICES",
-                      description: "Real devices to build the testing app",
+                      description: "Devices to run the tests on",
                       verify_block: proc do |value|
                         UI.user_error!("No devices specified") if value.to_s.length == 0
                       end),

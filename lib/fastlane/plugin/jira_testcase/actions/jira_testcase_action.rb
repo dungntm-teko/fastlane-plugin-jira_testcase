@@ -25,7 +25,7 @@ module Fastlane
           Actions::Scan::run(
             workspace: params[:workspace],
             scheme: params[:scheme],
-            devices: params[:sim_devices],
+            devices: params[:devices],
             only_testing: params[:whitelist_testing],
             clean: true,
             xcargs: "CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO",
@@ -35,7 +35,6 @@ module Fastlane
           Actions::Scan::run(
             workspace: params[:workspace],
             scheme: params[:scheme],
-            devices: params[:devices],
             clean: true,
             skip_detect_devices: true,
             build_for_testing: true,
