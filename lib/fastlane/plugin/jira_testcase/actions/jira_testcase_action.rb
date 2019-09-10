@@ -3,14 +3,6 @@ require 'fastlane/action'
 module Fastlane
   module Actions
     class JiraTestcaseAction < Action
-      DEFAULT_APP_BUNDLE_NAME = "bundle"
-      PULL_RESULT_INTERVAL = 5
-
-      RUNNING_STATES = %w(VALIDATING PENDING RUNNING)
-
-      private_constant :DEFAULT_APP_BUNDLE_NAME
-      private_constant :PULL_RESULT_INTERVAL
-      private_constant :RUNNING_STATES
 
       def self.run(params)
         Actions.verify_gem!('jira-ruby')
