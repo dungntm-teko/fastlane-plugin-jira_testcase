@@ -8,20 +8,12 @@ module Fastlane
         Actions.verify_gem!('jira-ruby')
         require 'jira-ruby'
 
-        site         = params[:url]
-        auth_type    = :basic
-        username     = params[:username]
-        password     = params[:password]
-        ticket_id    = params[:ticket_id]
-        comment_text = params[:comment_text]
-        app_path     = params[:app_path]
-
         options = {
-          site: site,
-          context_path: context_path,
-          auth_type: auth_type,
-          username: username,
-          password: password
+          site: params[:url],
+          context_path: params[:context_path],
+          auth_type: :basic,
+          username: params[:username],
+          password: params[:password]
         }
         client = JIRA::Client.new(options)
 
@@ -53,7 +45,7 @@ module Fastlane
           )
           spinner.update(title: "Done building")
 
-          JiraTestcase::IosValidator.validate_ios_app(app_path)
+          JiraTestcase::IosValidator.validate_ios_app(params[:app_path])
           spinner.update(title: "Upload the testing app to Jira Test...", format: :dots)
           # Consider pass test items
           createTestCycle(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_folder])

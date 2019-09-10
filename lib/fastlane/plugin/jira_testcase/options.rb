@@ -30,18 +30,6 @@ module Fastlane
                       verify_block: proc do |value|
                         UI.user_error!("No Project specified") if value.to_s.length == 0
                       end),
-          FastlaneCore::ConfigItem.new(key: :ticket_id,
-                      env_name: "FL_JIRA_TICKET_ID",
-                      description: "Ticket ID for Jira, i.e. IOS-123",
-                      verify_block: proc do |value|
-                        UI.user_error!("No Ticket specified") if value.to_s.length == 0
-                      end),
-          FastlaneCore::ConfigItem.new(key: :comment_text,
-                      env_name: "FL_JIRA_COMMENT_TEXT",
-                      description: "Text to add to the ticket as a comment",
-                      verify_block: proc do |value|
-                        UI.user_error!("No comment specified") if value.to_s.length == 0
-                      end),
           FastlaneCore::ConfigItem.new(key: :test_name,
                       env_name: "FL_JIRA_TEST_NAME",
                       description: "Test name",
