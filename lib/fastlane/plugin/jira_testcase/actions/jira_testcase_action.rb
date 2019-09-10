@@ -24,21 +24,53 @@ module Fastlane
         comment_text = params[:comment_text]
         app_path     = params[:app_path]
 
-        JiraTestcase::IosValidator.validate_ios_app(app_path)
-        upload_spinner = TTY::Spinner.new("[:spinner] Uploading the app to Jira Test...", format: :dots)
-        upload_spinner.auto_spin
         options = {
-            site: site,
-            context_path: context_path,
-            auth_type: auth_type,
-            username: username,
-            password: password
+          site: site,
+          context_path: context_path,
+          auth_type: auth_type,
+          username: username,
+          password: password
         }
         client = JIRA::Client.new(options)
 
+        spinner = TTY::Spinner.new("[:spinner] Run unit tests", format: :dots)
+        spinner.auto_spin
+        begin
+          createTest(client, params[:test_name], params[:project_key], params[:test_description])
 
-        upload_spinner.success("Done")
+          Actions::Scan::run(
+            workspace: params[:workspace],
+            scheme: params[:scheme],
+            devices: params[:devices],
+            only_testing: params[:whitelist_testing],
+            clean: true,
+            xcargs: "CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO",
+          )
+          spinner.update(title: "Done testing, build a testing app now")
 
+          Actions::Scan::run(
+            workspace: params[:workspace],
+            scheme: params[:scheme],
+            devices: params[:devices],
+            clean: true,
+            skip_detect_devices: true,
+            build_for_testing: true,
+            sdk: 'iphoneos',
+            configuration: "Debug",
+            should_zip_build_products: true
+          )
+          spinner.update(title: "Done building")
+
+          JiraTestcase::IosValidator.validate_ios_app(app_path)
+          spinner.update(title: "Upload the testing app to Jira Test...", format: :dots)
+          # Consider pass test items
+          createTestCycle(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_folder])
+
+          spinner.success("Done")
+        rescue => exception
+          spinner.error(exception)
+          raise exception
+        end
       end
 
       def self.createTestCycle(client, name, projectKey, issueKey, folder, items = '')
@@ -55,7 +87,7 @@ module Fastlane
         client.post("/rest/atm/1.0/testrun", body)
       end
 
-      def self.createTest(name = '', projectKey, issuesKey, description = '')
+      def self.createTest(client, name = '', projectKey, issuesKey, description = '')
         body =
             <<~END
               {
@@ -67,6 +99,14 @@ module Fastlane
               }
             END
         client.post("/rest/atm/1.0/testcase", body)
+      end
+
+      def self.getTestsInIssue(client, projectKey, issueKey)
+        client.get("/rest/atm/1.0/testcase/search?query=projectKey%20=%20\"#{projectKey}\"%20AND%20issueKeys%20IN%20(#{issueKey})")
+      end
+
+      def self.deleteTest(name = '', testKey)
+        client.delete("/rest/atm/1.0/testcase/", body)
       end
 
       def self.description
