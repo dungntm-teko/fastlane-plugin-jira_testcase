@@ -1,5 +1,9 @@
-require 'fastlane/action'
+require_relative '../options'
+
 require 'json'
+require 'json/add/exception'
+require 'fastlane/action'
+require 'tty-spinner'
 
 module Fastlane
   module Actions
@@ -18,57 +22,56 @@ module Fastlane
         }
         client = JIRA::Client.new(options)
 
-        spinner = TTY::Spinner.new("[:spinner] Run unit tests", format: :dots)
+        spinner = TTY::Spinner.new("[:spinner]", format: :dots)
         spinner.auto_spin
+        spinner.update(title: "Create test on JIRA...")
         begin
-          createTest(client, params[:test_name], params[:project_key], params[:test_description] || "")
+          createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || "")
+          spinner.update(title: "Create JIRA test successfully, run unit test...")
 
-          Actions::Scan::run(
-            workspace: params[:workspace],
+          Fastlane::Actions::ScanAction::run(
+            workspace: "#{params[:workspace]}.workspace",
             scheme: params[:scheme],
             devices: params[:devices],
             only_testing: params[:whitelist_testing],
             clean: true,
             xcargs: "CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO",
           )
-          spinner.update(title: "Test successfully, upload test cases to Jira Test...", format: :dots)
+          spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
           # Consider pass test items
           test_cases_in_issue = JSON[getTestsInIssue(client, params[:project_key], params[:issue_key])]
           items = "[{\"key\": #{test_cases_in_issue["key"]}, \"result\": #{test_cases_in_issue["result"]}}]"
           createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], items)
 
           spinner.success("Done")
-        rescue => exception
-          spinner.error(exception)
-          raise exception
+        rescue => e
+          spinner.error("Error occurs")
+          raise e
         end
       end
 
       def self.createTestCycle(client, name, projectKey, issueKey, folder, items)
-        body =
-            <<~END
-              {
-                "name": #{name},
-                "projectKey": #{projectKey},
-                "issueKey": #{issueKey},
-                "folder": #{folder},
-                "items": #{items}
-              }
-            END
+        body = {
+          name: name,
+          projectKey: projectKey,
+          issueKey: issueKey,
+          folder: folder,
+          items: items
+        }.to_json
         client.post("/rest/atm/1.0/testrun", body)
       end
 
-      def self.createTest(client, name, projectKey, issuesKey, description)
-        body =
-            <<~END
-              {
-                "name": #{name},
-                "testScript": {"type": "PLAIN_TEXT","text": #{description}},
-                "projectKey": #{projectKey},
-                "issueLinks": [#{issuesKey}],
-                "status": "Approved"
-              }
-            END
+      def self.createTest(client, name, projectKey, issuesKey, testDesc)
+        body =  {
+          name: name,
+          testScript: {
+            type: "PLAIN_TEXT",
+            text: testDesc
+          },
+          projectKey: projectKey,
+          issueLinks: [issuesKey],
+          status: "Approved"
+        }.to_json
         client.post("/rest/atm/1.0/testcase", body)
       end
 
@@ -98,9 +101,7 @@ module Fastlane
       end
 
       def self.available_options
-        [
-          Fastlane::JiraTestcase::Options.available_options
-        ]
+        Fastlane::JiraTestcase::Options.available_options
       end
 
       def self.is_supported?(platform)
