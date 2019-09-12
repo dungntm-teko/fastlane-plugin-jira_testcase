@@ -21,7 +21,7 @@ module Fastlane
         spinner = TTY::Spinner.new("[:spinner] Run unit tests", format: :dots)
         spinner.auto_spin
         begin
-          createTest(client, params[:test_name], params[:project_key], params[:test_description])
+          createTest(client, params[:test_name], params[:project_key], params[:test_description] || "")
 
           Actions::Scan::run(
             workspace: params[:workspace],
@@ -44,7 +44,7 @@ module Fastlane
         end
       end
 
-      def self.createTestCycle(client, name, projectKey, issueKey, folder, items = '')
+      def self.createTestCycle(client, name, projectKey, issueKey, folder, items)
         body =
             <<~END
               {
@@ -58,12 +58,12 @@ module Fastlane
         client.post("/rest/atm/1.0/testrun", body)
       end
 
-      def self.createTest(client, name = '', projectKey, issuesKey, description = '')
+      def self.createTest(client, name, projectKey, issuesKey, description)
         body =
             <<~END
               {
                 "name": #{name},
-                "testScript": {"type": "PLAIN_TEXT","text": "$testDescription"},
+                "testScript": {"type": "PLAIN_TEXT","text": #{description}},
                 "projectKey": #{projectKey},
                 "issueLinks": [#{issuesKey}],
                 "status": "Approved"
@@ -76,8 +76,8 @@ module Fastlane
         client.get("/rest/atm/1.0/testcase/search?query=projectKey%20=%20\"#{projectKey}\"%20AND%20issueKeys%20IN%20(#{issueKey})")
       end
 
-      def self.deleteTest(name = '', testKey)
-        client.delete("/rest/atm/1.0/testcase/", body)
+      def self.deleteTest(client, testKey)
+        client.delete("/rest/atm/1.0/testcase/#{testKey}")
       end
 
       def self.description
