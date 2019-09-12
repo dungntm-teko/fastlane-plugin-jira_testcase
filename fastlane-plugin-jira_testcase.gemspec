@@ -1,11 +1,10 @@
-# coding: utf-8
 
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'fastlane/plugin/jira_testcase/version'
+require 'fastlane/plugin/jira_testcase/module'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'fastlane-plugin-jira_testcase'
+  spec.name          = Fastlane::JiraTestcase::PLUGIN_NAME
   spec.version       = Fastlane::JiraTestcase::VERSION
   spec.author        = 'Dũng Nguyễn'
   spec.email         = 'dung.ntm1@teko.vn'
@@ -18,12 +17,7 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
 
-  # Don't add a dependency to fastlane or fastlane_re
-  # since this would cause a circular dependency
-
   spec.add_dependency('jira-ruby')
-  spec.add_dependency('rubyzip', '>= 1.0.0')
-  spec.add_dependency('plist', '>= 3.0.0')
   spec.add_dependency('tty-spinner', '>= 0.8.0', '< 1.0.0')
 
   spec.add_development_dependency('pry')

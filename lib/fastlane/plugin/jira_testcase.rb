@@ -1,4 +1,4 @@
-require 'fastlane/plugin/jira_testcase/version'
+require 'fastlane/plugin/jira_testcase/module'
 
 module Fastlane
   module JiraTestcase
