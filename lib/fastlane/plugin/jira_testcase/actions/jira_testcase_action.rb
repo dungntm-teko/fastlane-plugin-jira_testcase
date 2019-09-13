@@ -47,7 +47,7 @@ module Fastlane
             }
           )
 
-          # Fastlane::Actions::ScanAction::run(scan_options)
+          Fastlane::Actions::ScanAction::run(scan_options)
           spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
           result_items = test_cases_in_issue.map {|i| {
             testCaseKey: i['key'],
