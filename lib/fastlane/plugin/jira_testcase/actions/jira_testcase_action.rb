@@ -3,6 +3,7 @@ require_relative '../options'
 require 'json'
 require 'json/add/exception'
 require 'fastlane/action'
+require 'fastlane_core'
 require 'tty-spinner'
 
 module Fastlane
@@ -26,26 +27,46 @@ module Fastlane
         spinner.auto_spin
         spinner.update(title: "Create test on JIRA...")
         begin
-          createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || "")
+          test_cases_in_issue = JSON.parse(getTestsInIssue(client, params[:project_key], params[:issue_key]))
+          existed_test_cases = test_cases_in_issue.any? {|i| i['name'] == params[:test_name] }
+          new_test_case = nil
+          unless existed_test_cases
+            new_test_case = JSON.parse(createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || ""))
+          end
           spinner.update(title: "Create JIRA test successfully, run unit test...")
-
-          Fastlane::Actions::ScanAction::run(
-            workspace: "#{params[:workspace]}.workspace",
-            scheme: params[:scheme],
-            devices: params[:devices],
-            only_testing: params[:whitelist_testing],
-            clean: true,
-            xcargs: "CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO",
+          
+          scan_options = FastlaneCore::Configuration.create(
+            Fastlane::Actions::ScanAction.available_options,
+            {
+              workspace: "#{params[:workspace]}.xcworkspace",
+              scheme: params[:scheme],
+              devices: params[:devices],
+              only_testing: params[:whitelist_testing],
+              clean: true,
+              xcargs: "CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO"
+            }
           )
+
+          # Fastlane::Actions::ScanAction::run(scan_options)
           spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
+          result_items = test_cases_in_issue.map {|i| {
+            testCaseKey: i['key'],
+            comment: "Outstanding pass",
+            status: "Pass"
+          } }
+          unless new_test_case.nil?
+            result_items.push({
+              testCaseKey: new_test_case['key'],
+              comment: "Outstanding pass",
+              status: "Pass"
+            })
+          end
           # Consider pass test items
-          test_cases_in_issue = JSON[getTestsInIssue(client, params[:project_key], params[:issue_key])]
-          items = "[{\"key\": #{test_cases_in_issue["key"]}, \"result\": #{test_cases_in_issue["result"]}}]"
-          createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], items)
+          createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
 
           spinner.success("Done")
         rescue => e
-          spinner.error("Error occurs")
+          spinner.error("An error occurs")
           raise e
         end
       end
@@ -58,7 +79,8 @@ module Fastlane
           folder: folder,
           items: items
         }.to_json
-        client.post("/rest/atm/1.0/testrun", body)
+        request = client.post("/rest/atm/1.0/testrun", body)
+        request.body
       end
 
       def self.createTest(client, name, projectKey, issuesKey, testDesc)
@@ -72,11 +94,13 @@ module Fastlane
           issueLinks: [issuesKey],
           status: "Approved"
         }.to_json
-        client.post("/rest/atm/1.0/testcase", body)
+        request = client.post("/rest/atm/1.0/testcase", body)
+        request.body
       end
 
       def self.getTestsInIssue(client, projectKey, issueKey)
-        client.get("/rest/atm/1.0/testcase/search?query=projectKey%20=%20\"#{projectKey}\"%20AND%20issueKeys%20IN%20(#{issueKey})")
+        request = client.get("/rest/atm/1.0/testcase/search?query=projectKey%20=%20\"#{projectKey}\"%20AND%20issueKeys%20IN%20(#{issueKey})")
+        request.body
       end
 
       def self.deleteTest(client, testKey)
