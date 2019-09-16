@@ -34,11 +34,15 @@ module Fastlane
             new_test_case = JSON.parse(createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || ""))
           end
           spinner.update(title: "Create JIRA test successfully, run unit test...")
-          clean = ["true", "t", "T", "on"].include?(params[:clean])
-          unless clean
-            env_clean = params[:clean].to_i
-            unless env_clean == 0
-              clean = true
+          
+          clean = false
+          unless params[:clean].is_a?(FalseClass)
+            clean = ["true", "t", "T", "on"].include?(params[:clean])
+            unless clean
+              env_clean = params[:clean].to_i
+              unless env_clean == 0
+                clean = true
+              end
             end
           end
           
