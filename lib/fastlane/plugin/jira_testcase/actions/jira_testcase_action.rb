@@ -34,6 +34,13 @@ module Fastlane
             new_test_case = JSON.parse(createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || ""))
           end
           spinner.update(title: "Create JIRA test successfully, run unit test...")
+          clean = ["true", "t", "T", "on"].include?(params[:clean])
+          unless clean
+            env_clean = params[:clean].to_i
+            unless env_clean == 0
+              clean = true
+            end
+          end
           
           scan_options = FastlaneCore::Configuration.create(
             Fastlane::Actions::ScanAction.available_options,
@@ -42,7 +49,7 @@ module Fastlane
               scheme: params[:scheme],
               devices: params[:devices],
               only_testing: params[:whitelist_testing],
-              clean: true,
+              clean: clean,
               xcargs: "CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO"
             }
           )
