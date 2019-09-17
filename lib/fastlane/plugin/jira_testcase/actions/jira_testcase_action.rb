@@ -54,6 +54,18 @@ module Fastlane
 
           if auto_pass_tests
             spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
+            result_items = test_cases_in_issue.map {|i| {
+              testCaseKey: i['key'],
+              comment: "Outstanding pass",
+              status: "Pass"
+            } }
+            unless new_test_case.nil?
+              result_items.push({
+                testCaseKey: new_test_case['key'],
+                comment: "Outstanding pass",
+                status: "Pass"
+              })
+            end
             createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
             spinner.success("Done")
             return
