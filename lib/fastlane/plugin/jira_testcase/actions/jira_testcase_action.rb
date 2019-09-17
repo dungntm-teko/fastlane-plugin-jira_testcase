@@ -38,7 +38,7 @@ module Fastlane
           truthy = ["true", "t", "T", "on"]
 
           auto_pass_tests = false
-          if auto_pass_tests.is_a?(TrueClass)
+          if params[:auto_pass_tests].is_a?(TrueClass)
             auto_pass_tests = true
           else
             unless params[:auto_pass_tests].is_a?(FalseClass)
