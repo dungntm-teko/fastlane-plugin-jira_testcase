@@ -34,10 +34,30 @@ module Fastlane
             new_test_case = JSON.parse(createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || ""))
           end
           spinner.update(title: "Create JIRA test successfully, run unit test...")
-          
+
+          truthy = ["true", "t", "T", "on"]
+
+          auto_pass_tests = false
+          unless params[:auto_pass_tests].is_a?(FalseClass)
+            auto_pass_tests = truthy.include?(params[:auto_pass_tests])
+            unless auto_pass_tests
+              env_auto_pass_tests = params[:auto_pass_tests].to_i
+              unless env_auto_pass_tests == 0
+                auto_pass_tests = true
+              end
+            end
+          end
+
+          if auto_pass_tests
+            spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
+            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
+            spinner.success("Done")
+            return
+          end
+
           clean = false
           unless params[:clean].is_a?(FalseClass)
-            clean = ["true", "t", "T", "on"].include?(params[:clean])
+            clean = truthy.include?(params[:clean])
             unless clean
               env_clean = params[:clean].to_i
               unless env_clean == 0
