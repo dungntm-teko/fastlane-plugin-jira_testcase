@@ -58,24 +58,41 @@ module Fastlane
             }
           )
 
-          Fastlane::Actions::ScanAction::run(scan_options)
-          spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
-          result_items = test_cases_in_issue.map {|i| {
-            testCaseKey: i['key'],
-            comment: "Outstanding pass",
-            status: "Pass"
-          } }
-          unless new_test_case.nil?
-            result_items.push({
-              testCaseKey: new_test_case['key'],
+          begin
+            Fastlane::Actions::ScanAction::run(scan_options)
+            spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
+            result_items = test_cases_in_issue.map {|i| {
+              testCaseKey: i['key'],
               comment: "Outstanding pass",
               status: "Pass"
-            })
+            } }
+            unless new_test_case.nil?
+              result_items.push({
+                testCaseKey: new_test_case['key'],
+                comment: "Outstanding pass",
+                status: "Pass"
+              })
+            end
+            # Consider pass test items
+            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
+            spinner.success("Done")
+          rescue => e
+            spinner.update(title: "Test failed, upload test cycle to Jira Test...")
+            result_items = test_cases_in_issue.map {|i| {
+              testCaseKey: i['key'],
+              comment: "Outstanding failure",
+              status: "Fail"
+            } }
+            unless new_test_case.nil?
+              result_items.push({
+                testCaseKey: new_test_case['key'],
+                comment: "Outstanding failure",
+                status: "Fail"
+              })
+            end
+            # Consider pass test items
+            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
           end
-          # Consider pass test items
-          createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
-
-          spinner.success("Done")
         rescue => e
           spinner.error("An error occurs")
           raise e
