@@ -82,6 +82,8 @@ module Fastlane
             }
           )
 
+          result_items = []
+
           begin
             Fastlane::Actions::ScanAction::run(scan_options)
             spinner.update(title: "Test successfully, upload test cycle to Jira Test...")
