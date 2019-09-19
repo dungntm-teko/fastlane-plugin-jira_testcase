@@ -27,11 +27,11 @@ module Fastlane
         spinner.auto_spin
         spinner.update(title: "Create test on JIRA...")
         begin
-          test_cases_in_issue = JSON.parse(getTestsInIssue(client, params[:project_key], params[:issue_key]))
+          test_cases_in_issue = JSON.parse(getTestsInIssue(client, params[:project_key], params[:issue_key], params[:testcase_folder]))
           existed_test_cases = test_cases_in_issue.any? {|i| i['name'] == params[:test_name] }
           new_test_case = nil
           unless existed_test_cases
-            new_test_case = JSON.parse(createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || ""))
+            new_test_case = JSON.parse(createTest(client, params[:test_name], params[:project_key], params[:issue_key], params[:test_description] || "", params[:testcase_folder]))
           end
           spinner.update(title: "Create JIRA test successfully, run unit test...")
 
@@ -66,7 +66,7 @@ module Fastlane
                 status: "Pass"
               })
             end
-            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
+            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_cycle_folder], result_items)
             spinner.success("Done")
             return
           end
@@ -112,7 +112,7 @@ module Fastlane
               })
             end
             # Consider pass test items
-            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
+            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_cycle_folder], result_items)
             spinner.success("Done")
           rescue => e
             spinner.update(title: "Test failed, upload test cycle to Jira Test...")
@@ -129,7 +129,7 @@ module Fastlane
               })
             end
             # Consider pass test items
-            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_folder], result_items)
+            createTestCycle(client, params[:test_cycle_name], params[:project_key], params[:issue_key], params[:test_cycle_folder], result_items)
           end
         rescue => e
           spinner.error("An error occurs")
@@ -149,7 +149,7 @@ module Fastlane
         request.body
       end
 
-      def self.createTest(client, name, projectKey, issuesKey, testDesc)
+      def self.createTest(client, name, projectKey, issuesKey, testDesc, folder)
         body =  {
           name: name,
           testScript: {
@@ -157,6 +157,7 @@ module Fastlane
             text: testDesc
           },
           projectKey: projectKey,
+          folder: folder,
           issueLinks: [issuesKey],
           status: "Approved"
         }.to_json
@@ -164,8 +165,8 @@ module Fastlane
         request.body
       end
 
-      def self.getTestsInIssue(client, projectKey, issueKey)
-        request = client.get("/rest/atm/1.0/testcase/search?query=projectKey%20=%20\"#{projectKey}\"%20AND%20issueKeys%20IN%20(#{issueKey})")
+      def self.getTestsInIssue(client, projectKey, issueKey, folder)
+        request = client.get("/rest/atm/1.0/testcase/search?query=projectKey%20=%20\"#{projectKey}\"%20AND%20issueKeys%20IN%20(#{issueKey})%20AND%20folder=\"#{folder}\"")
         request.body
       end
 
