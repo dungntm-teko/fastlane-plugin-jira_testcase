@@ -79,7 +79,8 @@ module Fastlane
         logs.each_value do |log|
           test_scheme = log['schemeIdentifier-schemeName']
           if test_scheme == @scheme
-            xctestrun_file_name = log['fileName'] 
+            xctestrun_file_name = log['fileName']
+            break
           end
         end
         if xctestrun_file_name.nil?
