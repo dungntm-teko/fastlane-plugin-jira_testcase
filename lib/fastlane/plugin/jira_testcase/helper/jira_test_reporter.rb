@@ -22,10 +22,13 @@ module Fastlane
         @test_case_folder = params[:test_case_folder]
         @workspace = params[:workspace]
         @scheme = params[:scheme]
+
+        @project = FastlaneCore::Project(workspace: @workspace, scheme: @scheme)
         @client = JIRA::Client.new(options)
       end
 
       def run
+        jira_test_case_items = []
         result_items = []
 
         xctestresult_path = self.xctestresult_path
@@ -33,30 +36,42 @@ module Fastlane
           return
         end
 
-        info = Plist.parse_xml("#{xctestresult_path}/TestSummaries.plist")
+        xcode_version = @project.default_build_settings(key: 'XCODE_VERSION_ACTUAL').to_i
+        if xcode_version >= 1100 # xcode 11 or higher
+          result_items = self.retrieve_results_xcode_11
+        elsif xcode_version >= 1000
+          result_items = self.retrieve_results_xcode_10
+        end
 
-        # test_cases_in_issue = JSON.parse(get_tests_in_issue)
+        test_cases_in_issue = JSON.parse(get_tests_in_issue)
 
-        # existed_test_cases = test_cases_in_issue.any? {|i| i['name'] == test_name }
-        # new_test_case = nil
-        # unless existed_test_cases
-        #   new_test_case = JSON.parse(request_create_test(test_name, test_description || ""))
-        # end
+        result_items.each do |item|
 
-        # result_items = test_cases_in_issue.map {|i| {
-        #   testCaseKey: i['key'],
-        #   comment: "Outstanding pass",
-        #   status: "Pass"
-        # } }
-        # unless new_test_case.nil?
-        #   result_items.push({
-        #     testCaseKey: new_test_case['key'],
-        #     comment: "Outstanding pass",
-        #     status: "Pass"
-        #   })
-        # end
+          # TODO: Build true object
+          test_name = item['name']
+          test_description = item['description'] || ""
+          status = item['result'] == 'Success' ? 'Pass' : 'Fail'
+
+          existed_test_cases = test_cases_in_issue.select? {|i| i['name'] == test_name}
+
+          if existed_test_cases.empty?
+            new_test_case = JSON.parse(request_create_test(test_name, test_description))
+            jira_test_case_items.push({
+              testCaseKey: new_test_case['key'],
+              comment: "Outstanding #{status}",
+              status: status
+            })
+          else
+            jira_test_case_items.concat(existed_test_cases.map {|i| {
+              testCaseKey: i['key'],
+              comment: "Outstanding #{status}",
+              status: status
+            } })
+          end
+        end
+
         # Consider pass test items
-        # request_create_test_cycle(result_items)
+        request_create_test_cycle(jira_test_case_items)
       end
 
       def delete_test(test_key)
@@ -65,8 +80,15 @@ module Fastlane
 
       private
 
+      def retrieve_results_xcode_11(xctestresult_path)
+        info = Plist.parse_xml("#{xctestresult_path}/Info.plist")
+      end
+
+      def retrieve_results_xcode_10(xctestresult_path)
+        test_summaries = Plist.parse_xml("#{xctestresult_path}/TestSummaries.plist")
+      end
+
       def xctestresult_path
-        project = FastlaneCore::Project(workspace: @workspace, scheme: @scheme)
         build_dir = nil
         begin
           build_dir = File.dirname(project.default_build_settings(key: 'BUILD_DIR'))
