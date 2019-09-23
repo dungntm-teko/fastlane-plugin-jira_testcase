@@ -2,6 +2,8 @@ require 'jira-ruby'
 require 'json'
 require 'plist'
 
+require 'fastlane_core/project'
+
 module Fastlane
   module JiraTestcase
     class JiraTestReporter
@@ -64,14 +66,20 @@ module Fastlane
       private
 
       def xctestresult_path
-        home = %x[echo ~/].strip
-        folders = Dir.entries("#{home}/Library/Developer/Xcode/DerivedData");
-        folder = folders.select { |obj| obj.index(@workspace) == 0 }.first
-        if folder.nil?
+        project = FastlaneCore::Project(workspace: @workspace, scheme: @scheme)
+        build_dir = nil
+        begin
+          build_dir = File.dirname(project.default_build_settings(key: 'BUILD_DIR'))
+        rescue => e
           return nil
         end
 
-        test_logs_path = "#{home}/Library/Developer/Xcode/DerivedData/#{folder}/Logs/Test"
+        if build_dir.nil?
+          return nil
+        end
+        
+        derived_data_path = File.expand_path('..', build_dir)
+        test_logs_path = "#{derived_data_path}/Logs/Test"
         log_manifest = Plist.parse_xml("#{test_logs_path}/LogStoreManifest.plist")
         logs = log_manifest['logs']
 
@@ -121,8 +129,6 @@ module Fastlane
         request = @client.get("/rest/atm/1.0/testcase/search?query=projectKey%20=%20\"#{@project_key}\"%20AND%20issueKeys%20IN%20(#{@issue_key})%20AND%20folder=\"#{@test_case_folder}\"")
         request.body
       end
-
-      def 
     end
   end
 end
