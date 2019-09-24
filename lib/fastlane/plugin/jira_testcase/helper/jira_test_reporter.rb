@@ -81,11 +81,24 @@ module Fastlane
       private
 
       def retrieve_results_xcode_11(xctestresult_path)
-        info = Plist.parse_xml("#{xctestresult_path}/Info.plist")
+        result_string = %x|xcrun xcresulttool get --format json --path #{xctestresult_path}|
+        summary_result_json = JSON.parse(result_string)
+        summary_id = result_json['actions']['_values'][0]['actionResult']['testsRef']['id']['_value']
+
+        result_string = %x|xcrun xcresulttool get --format json --path #{xctestresult_path} --id #{summary_id}|
+        result_json = JSON.parse(result_string)
+        test_cases_json = result_json['summaries']['_values'][0]['testableSummaries']['_values'][0]['tests']['_values']
+        test_cases_json.map { |json| {
+          {
+            'name': json['name']['_value']
+            
+          }
+        } }
       end
 
       def retrieve_results_xcode_10(xctestresult_path)
         test_summaries = Plist.parse_xml("#{xctestresult_path}/TestSummaries.plist")
+
       end
 
       def xctestresult_path
