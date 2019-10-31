@@ -87,18 +87,50 @@ module Fastlane
 
         result_string = %x|xcrun xcresulttool get --format json --path #{xctestresult_path} --id #{summary_id}|
         result_json = JSON.parse(result_string)
-        test_cases_json = result_json['summaries']['_values'][0]['testableSummaries']['_values'][0]['tests']['_values']
-        test_cases_json.map { |json| {
-          {
-            'name': json['name']['_value']
-            
-          }
-        } }
+        
+        get_test_cases_from_result_json(result_json)
+      end
+
+      def get_test_cases_from_result_json(result_json)
+        summaries = result_json['summaries']['_values']
+
+        first_summary = summaries[0]
+        testables_summaries = get_json_testables_summaries_from_summaries(first_summary)
+
+        first_testables_summary = testables_summaries[0]
+        tests = get_json_tests_from_testables_summaries(first_testables_summary)
+
+        tests.flat_map { |test| get_json_test_cases_from_test(test) }
+      end
+
+      def get_json_testables_summaries_from_summaries(summary)
+        summary['testableSummaries']['_values']
+      end
+
+      def get_json_tests_from_testables_summaries(summary)
+        summary['tests']['_values']
+      end
+
+      def get_json_test_cases_from_test(test)
+        if test['subtests'].nil? || test['subtests']['_values'].nil? || test['subtests']['_values'].empty?
+          return [{
+            'name': test['name']['_value'],
+            'duration': test['duration']['_value'],
+            'identifier': test['identifier']['_value'],
+            'status': test['status']['_value']
+          }]
+        else
+          test_cases = []
+          test['subtests']['_values'].each_value do |sub_test|
+            sub_test_cases = get_json_test_cases_from_test(sub_test)
+            test_cases.concat(sub_test_cases)
+          end
+          return test_cases
+        end
       end
 
       def retrieve_results_xcode_10(xctestresult_path)
-        test_summaries = Plist.parse_xml("#{xctestresult_path}/TestSummaries.plist")
-
+        raise 'Unsupport XCode 10. Please upgrate XCode 11 or higher' 
       end
 
       def xctestresult_path
